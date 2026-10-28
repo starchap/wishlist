@@ -31,23 +31,24 @@ export class IamApplicationService {
    */
   public static async ensureAdminSeeded(): Promise<UserDto> {
     const db = getDb();
-    const adminUsername = (process.env.ADMIN_USERNAME || 'admin').toLowerCase().trim();
-    const existing = await db
+    const adminUsername = (process.env.ADMIN_USERNAME || 'mikkel').toLowerCase().trim();
+    const existingAdmins = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.username, adminUsername))
+      .where(eq(usersTable.role, 'admin'))
       .limit(1);
+
+    const existing =
+      existingAdmins.length > 0
+        ? existingAdmins
+        : await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.username, adminUsername))
+            .limit(1);
 
     if (existing.length > 0) {
       const row = existing[0];
-      const desiredDisplayName = process.env.ADMIN_DISPLAY_NAME || 'Admin';
-      if (row.displayName.toLowerCase().includes('chibi')) {
-        await db
-          .update(usersTable)
-          .set({ displayName: desiredDisplayName })
-          .where(eq(usersTable.id, row.id));
-        row.displayName = desiredDisplayName;
-      }
       // Ensure admin also has their 1 wishlist
       const wl = await db
         .select()
@@ -58,7 +59,7 @@ export class IamApplicationService {
         await db.insert(wishlistsTable).values({
           id: `wl_${crypto.randomUUID()}`,
           userId: row.id,
-          title: `${row.displayName}'s Ønskeliste`,
+          title: `${row.displayName}s Ønskeliste`,
           description: 'Velkommen til min ønskeliste ✨'
         });
       }
@@ -73,8 +74,8 @@ export class IamApplicationService {
     }
 
     const adminId = `usr_admin_${crypto.randomUUID().slice(0, 8)}`;
-    const displayName = process.env.ADMIN_DISPLAY_NAME || 'Admin';
-    const password = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123';
+    const displayName = process.env.ADMIN_DISPLAY_NAME || 'Mikkel';
+    const password = process.env.ADMIN_DEFAULT_PASSWORD || 'D%32aFmpF#';
     const passwordHash = PasswordHasher.hash(password);
 
     await db.insert(usersTable).values({

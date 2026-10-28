@@ -1,0 +1,22 @@
+{
+  "myWishlistTitle": "My Wishlist 🎁",
+  "ownerWishlistTitle": "{{name}}'s Wishlist 🌸",
+  "wishesCount": "{{count}} wishes",
+  "addWishButton": "Add new wish ✨",
+  "importOenskeskyenButton": "Import from Ønskeskyen ☁️",
+  "wishTitleLabel": "Wish title",
+  "wishTitlePlaceholder": "e.g. Moomin Mug or Lego Flowers",
+  "wishDescLabel": "Description / Size / Color",
+  "wishDescPlaceholder": "e.g. Size M in pastel green",
+  "wishQtyLabel": "Quantity wanted",
+  "wishPriceLabel": "Approx. price (DKK)",
+  "wishPricePlaceholder": "e.g. 249",
+  "wishUrlLabel": "Product link",
+  "wishImageUploadLabel": "Image (automatically compressed to ≤512×512 metadata-free AVIF)",
+  "emptyWishlistTitle": "This wishlist is empty 🌱",
+  "emptyWishlistDesc": "Add a wish via a product link or import directly from Ønskeskyen!",
+  "visitLinkButton": "View in store ↗",
+  "quantityBadge": "Wants {{qty}} pcs",
+  "surpriseProtectedBadge": "🤫 Gift reservations are hidden from you so the surprise isn't spoiled!",
+  "deleteConfirm": "Delete wish"
+}

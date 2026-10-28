@@ -1,0 +1,16 @@
+{
+  "fetchFromUrlLabel": "Hent automatisk fra produkt-link 🔗",
+  "urlPlaceholder": "Indsæt link til varen (f.eks. https://...)",
+  "fetchButton": "Hent info ✨",
+  "fetchingStatus": "Henter metadata & komprimerer billede til 512px AVIF...",
+  "fetchSuccess": "Metadata og AVIF-billede hentet fra linket! 🎉",
+  "fetchError": "Kunne ikke hente alle oplysninger automatisk — du kan udfylde resten manuelt.",
+  "oenskeskyenTitle": "Importér fra Ønskeskyen ☁️✨",
+  "oenskeskyenSubtitle": "Indsæt et offentligt delingslink fra Ønskeskyen, så henter vi ønskerne og komprimerer alle billeder til små 512×512 AVIF-filer uden metadata.",
+  "oenskeskyenPlaceholder": "https://onskeskyen.dk/s/...",
+  "previewButton": "Find ønsker på link 🔍",
+  "importSelectedButton": "Importér valgte ønsker ({{count}}) 🎁",
+  "importingStatus": "Importerer ønsker og konverterer billeder til AVIF...",
+  "importSuccess": "{{count}} ønsker importeret til din ønskeliste! 🌸",
+  "noWishesFound": "Ingen ønsker fundet på dette link. Tjek at listen er offentlig."
+}

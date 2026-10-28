@@ -1,0 +1,7 @@
+{
+  "name": "domain-wishlist",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/wishlist/src",
+  "projectType": "library",
+  "tags": ["type:domain", "scope:wishlist"]
+}

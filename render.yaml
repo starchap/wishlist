@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: wishlist-web
+    runtime: node
+    plan: free
+    buildCommand: git config --global url."https://github.com/".insteadOf "git@github.com:" && git submodule update --init --recursive && npm install && npm run build:lightly && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_DISPLAY_NAME
+        value: Admin
+      - key: ADMIN_DEFAULT_PASSWORD
+        sync: false

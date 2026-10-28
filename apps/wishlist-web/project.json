@@ -1,0 +1,27 @@
+{
+  "name": "wishlist-web",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/wishlist-web",
+  "projectType": "application",
+  "tags": ["type:app", "scope:web"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx next build apps/wishlist-web"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx next dev apps/wishlist-web -p 3000"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx next start apps/wishlist-web -p 3000"
+      }
+    }
+  }
+}

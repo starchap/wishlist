@@ -1,0 +1,19 @@
+{
+  "chatRoomTitle": "Secret Gift Chat: {{wishTitle}} 💬",
+  "chatRoomSubtitle": "Only the {{count}} people planning to give this gift can see and write here. The owner sees nothing! 🤫",
+  "ttlNotice": "🧹 Messages in this room are automatically deleted after 14 days to keep storage clean.",
+  "plainTextOnlyNotice": "Only plain text and emojis are allowed (no links, HTML, or images).",
+  "messagePlaceholder": "Write a message or pick an emoji... 🎁✨",
+  "sendButton": "Send 💬",
+  "emptyChat": "No messages yet. Say 'Hi! Shall we split this gift? 🎁' to start!",
+  "errorLinksOrHtmlNotAllowed": "Chat only allows plain text and emojis (links and HTML are not allowed).",
+  "errorEmptyMessage": "Message cannot be empty.",
+  "errorUnauthorizedChat": "Only pledged givers (when at least 2 people share the gift) can access this chat room.",
+  "notificationsButton": "Gift Chats",
+  "notificationsTitle": "Your Co-Giver Chats 💬",
+  "notificationsEmpty": "You don't have any active co-giver chats yet. When 2 or more people pledge the same gift, a chat room opens here!",
+  "newMessageBadge": "New",
+  "forRecipient": "For {{owner}}",
+  "openChatAction": "Open chat 💬",
+  "toastNewMessage": "New message from {{sender}} about \"{{wish}}\" — click to open chat 💬"
+}

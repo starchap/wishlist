@@ -1,0 +1,10 @@
+{
+  "pledgeButton": "Dette vil jeg gerne købe 🎁",
+  "unpledgeButton": "Fortryd mit køb",
+  "youAreBuyingBadge": "Du vil gerne købe denne! ✨",
+  "othersBuyingBadge": "{{names}} vil gerne give denne",
+  "coGiversNotice": "🎉 {{count}} personer vil give denne gave sammen! Åbn gave-chatten for at koordinere.",
+  "openGiftChatButton": "Åbn Gave-Chat ({{count}} givere) 💬",
+  "errorCannotPledgeOwnWish": "Du kan ikke reservere gaver på din egen ønskeliste!",
+  "availableToBuy": "Ledig — ingen har sat sig på den endnu"
+}

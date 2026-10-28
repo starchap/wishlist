@@ -1,0 +1,19 @@
+{
+  "chatRoomTitle": "Hemmelig Gave-Chat: {{wishTitle}} 💬",
+  "chatRoomSubtitle": "Kun de {{count}} personer, der vil give denne gave, kan se og skrive her. Ejeren kan intet se! 🤫",
+  "ttlNotice": "🧹 Beskeder i dette rum slettes automatisk efter 14 dage for at rydde op og spare plads.",
+  "plainTextOnlyNotice": "Kun almindelig tekst og emojis er tilladt (ingen links, HTML eller billeder).",
+  "messagePlaceholder": "Skriv en besked eller vælg en emoji... 🎁✨",
+  "sendButton": "Send 💬",
+  "emptyChat": "Ingen beskeder endnu. Skriv 'Hej! Skal vi slå os sammen om gaven? 🎁' for at starte!",
+  "errorLinksOrHtmlNotAllowed": "Chatten tillader kun ren tekst og emojis (links og HTML er ikke tilladt).",
+  "errorEmptyMessage": "Beskeden må ikke være tom.",
+  "errorUnauthorizedChat": "Kun registrerede givere (når I er mindst 2 om gaven) har adgang til dette chatrum.",
+  "notificationsButton": "Gave-chats",
+  "notificationsTitle": "Dine Samgave-chats 💬",
+  "notificationsEmpty": "Du er ikke med i nogen samgave-chats endnu. Når 2 eller flere vælger at give den samme gave, åbner chatten automatisk her!",
+  "newMessageBadge": "Ny",
+  "forRecipient": "Til {{owner}}",
+  "openChatAction": "Åbn chat 💬",
+  "toastNewMessage": "Ny besked fra {{sender}} om \"{{wish}}\" — klik for at åbne chatten 💬"
+}

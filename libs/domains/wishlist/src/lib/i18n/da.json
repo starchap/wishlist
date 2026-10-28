@@ -1,0 +1,22 @@
+{
+  "myWishlistTitle": "Min Ønskeliste 🎁",
+  "ownerWishlistTitle": "{{name}}s Ønskeliste 🌸",
+  "wishesCount": "{{count}} ønsker",
+  "addWishButton": "Tilføj nyt ønske ✨",
+  "importOenskeskyenButton": "Importér fra Ønskeskyen ☁️",
+  "wishTitleLabel": "Titel på ønske",
+  "wishTitlePlaceholder": "f.eks. Mumi Krus eller Lego Blomster",
+  "wishDescLabel": "Beskrivelse / Størrelse / Farve",
+  "wishDescPlaceholder": "f.eks. Størrelse M i himmelblå",
+  "wishQtyLabel": "Antal ønsket",
+  "wishPriceLabel": "Cirka pris (DKK)",
+  "wishPricePlaceholder": "f.eks. 249",
+  "wishUrlLabel": "Link til hjemmeside",
+  "wishImageUploadLabel": "Billede (komprimeres automatisk til ≤512×512 AVIF uden metadata)",
+  "emptyWishlistTitle": "Ønskelisten er tom endnu 🌱",
+  "emptyWishlistDesc": "Tilføj et ønske via et link eller importér direkte fra Ønskeskyen!",
+  "visitLinkButton": "Se på webshop ↗",
+  "quantityBadge": "{{qty}} stk. ønskes",
+  "surpriseProtectedBadge": "🤫 Gave-reservationer er skjult for dig, så overraskelsen ikke ødelægges!",
+  "deleteConfirm": "Slet ønske"
+}

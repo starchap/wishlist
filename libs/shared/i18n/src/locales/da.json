@@ -1,0 +1,19 @@
+{
+  "appName": "Ønskelisten",
+  "tagline": "Del dine ønsker, koordinér gaver hemmeligt & spar på data ☁️",
+  "save": "Gem",
+  "cancel": "Annuller",
+  "delete": "Slet",
+  "edit": "Rediger",
+  "close": "Luk",
+  "loading": "Henter...",
+  "currency": "kr.",
+  "languageLabel": "Sprog",
+  "danish": "Dansk",
+  "english": "English",
+  "myWishlist": "Min Ønskeliste",
+  "allWishlists": "Alles Ønskelister",
+  "adminPanel": "Admin Invitationer",
+  "logout": "Log ud",
+  "lowDataBadge": "Lavt dataforbrug (AVIF ≤512px)"
+}

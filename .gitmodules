@@ -1,0 +1,4 @@
+[submodule "libs/lightly"]
+	path = libs/lightly
+	url = git@github.com:starchap/Lightly.git
+	branch = main

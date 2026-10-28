@@ -1,0 +1,7 @@
+{
+  "name": "chibi-theme",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/chibi-theme/src",
+  "projectType": "library",
+  "tags": ["type:ui", "scope:chibi-theme"]
+}

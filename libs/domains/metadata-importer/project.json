@@ -1,0 +1,7 @@
+{
+  "name": "domain-metadata-importer",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/domains/metadata-importer/src",
+  "projectType": "library",
+  "tags": ["type:domain", "scope:metadata-importer"]
+}

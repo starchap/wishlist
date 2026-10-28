@@ -1,0 +1,16 @@
+{
+  "fetchFromUrlLabel": "Auto-fill from product link 🔗",
+  "urlPlaceholder": "Paste product link (e.g. https://...)",
+  "fetchButton": "Fetch info ✨",
+  "fetchingStatus": "Fetching metadata & compressing image to 512px AVIF...",
+  "fetchSuccess": "Metadata and AVIF image fetched from link! 🎉",
+  "fetchError": "Could not auto-fetch all details — you can fill in the rest manually.",
+  "oenskeskyenTitle": "Import from Ønskeskyen ☁️✨",
+  "oenskeskyenSubtitle": "Paste a public share link from Ønskeskyen to import wishes and compress all images into tiny 512×512 metadata-free AVIF files.",
+  "oenskeskyenPlaceholder": "https://onskeskyen.dk/s/...",
+  "previewButton": "Find wishes from link 🔍",
+  "importSelectedButton": "Import selected wishes ({{count}}) 🎁",
+  "importingStatus": "Importing wishes and converting images to AVIF...",
+  "importSuccess": "{{count}} wishes imported into your wishlist! 🌸",
+  "noWishesFound": "No wishes found on this link. Make sure the list is public."
+}

@@ -1,0 +1,19 @@
+{
+  "appName": "Wishlist",
+  "tagline": "Share your wishes, coordinate gifts secretly & save data ☁️",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "close": "Close",
+  "loading": "Loading...",
+  "currency": "DKK",
+  "languageLabel": "Language",
+  "danish": "Dansk",
+  "english": "English",
+  "myWishlist": "My Wishlist",
+  "allWishlists": "Everyone's Wishlists",
+  "adminPanel": "Admin Invites",
+  "logout": "Log out",
+  "lowDataBadge": "Low data mode (AVIF ≤512px)"
+}

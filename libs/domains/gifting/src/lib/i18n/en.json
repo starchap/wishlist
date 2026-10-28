@@ -1,0 +1,10 @@
+{
+  "pledgeButton": "I want to buy this 🎁",
+  "unpledgeButton": "Cancel my reservation",
+  "youAreBuyingBadge": "You plan to buy this! ✨",
+  "othersBuyingBadge": "{{names}} want to give this",
+  "coGiversNotice": "🎉 {{count}} people want to give this gift! Open the gift chat to coordinate.",
+  "openGiftChatButton": "Open Gift Chat ({{count}} givers) 💬",
+  "errorCannotPledgeOwnWish": "You cannot reserve gifts on your own wishlist!",
+  "availableToBuy": "Available — no one has claimed it yet"
+}

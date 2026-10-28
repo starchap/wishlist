@@ -1,0 +1,43 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@wishlist/lightly": ["libs/lightly/dist/index.d.ts"],
+      "@wishlist/lightly/icons": ["libs/lightly/dist/icons/index.d.ts"],
+      "@wishlist/shared-kernel": ["libs/shared/shared-kernel/src/index.ts"],
+      "@wishlist/i18n": ["libs/shared/i18n/src/index.ts"],
+      "@wishlist/database": ["libs/shared/database/src/index.ts"],
+      "@wishlist/image-processor": ["libs/shared/image-processor/src/index.ts"],
+      "@wishlist/chibi-theme": ["libs/shared/chibi-theme/src/index.ts"],
+      "@wishlist/domain-iam": ["libs/domains/iam/src/index.ts"],
+      "@wishlist/domain-iam/client": ["libs/domains/iam/src/client.ts"],
+      "@wishlist/domain-wishlist": ["libs/domains/wishlist/src/index.ts"],
+      "@wishlist/domain-wishlist/client": ["libs/domains/wishlist/src/client.ts"],
+      "@wishlist/domain-metadata-importer": ["libs/domains/metadata-importer/src/index.ts"],
+      "@wishlist/domain-metadata-importer/client": ["libs/domains/metadata-importer/src/client.ts"],
+      "@wishlist/domain-gifting": ["libs/domains/gifting/src/index.ts"],
+      "@wishlist/domain-gifting/client": ["libs/domains/gifting/src/client.ts"],
+      "@wishlist/domain-coordination-chat": ["libs/domains/coordination-chat/src/index.ts"],
+      "@wishlist/domain-coordination-chat/client": ["libs/domains/coordination-chat/src/client.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp", "libs/lightly/node_modules", "libs/lightly/dist"]
+}

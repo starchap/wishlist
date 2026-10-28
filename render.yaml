@@ -3,7 +3,7 @@ services:
     name: wishlist-web
     runtime: node
     plan: free
-    buildCommand: git config --global url."https://github.com/".insteadOf "git@github.com:" && git submodule update --init --recursive && npm install && npm run build:lightly && npm run build
+    buildCommand: git config --global url."https://github.com/".insteadOf "git@github.com:" && git submodule update --init --recursive && npm install --include=dev && npm run build:lightly && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV

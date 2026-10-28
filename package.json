@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nx dev wishlist-web",
-    "build:lightly": "npm --prefix libs/lightly install --legacy-peer-deps && npm --prefix libs/lightly run build:lib",
+    "build:lightly": "npm --prefix libs/lightly install --include=dev --legacy-peer-deps && npm --prefix libs/lightly run build:lib",
     "build": "nx build wishlist-web",
     "start": "nx start wishlist-web",
     "db:push": "drizzle-kit push",

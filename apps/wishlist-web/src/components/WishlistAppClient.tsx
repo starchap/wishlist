@@ -26,6 +26,7 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
   // Navigation tab: 'my' | 'all' | 'admin'
   const [activeTab, setActiveTab] = useState<'my' | 'all' | 'admin'>('my');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Domain states
   const [wishlists, setWishlists] = useState<WishlistSummaryDto[]>([]);
@@ -671,22 +672,36 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
 
   return (
     <div className="chibi-shell">
-      {/* Top Cute Chibi Header */}
+      {/* Top Header with Mobile Burger Menu */}
       <header className="chibi-header">
-        <div className="chibi-brand">
-          <ChibiMascotSvg size={44} />
-          <div>
-            <h1>{commonI18n.t(locale, 'appName')}</h1>
-            <p>{commonI18n.t(locale, 'lowDataBadge')}</p>
+        <div className="chibi-header-top">
+          <div className="chibi-brand">
+            <ChibiMascotSvg size={44} />
+            <div>
+              <h1>{commonI18n.t(locale, 'appName')}</h1>
+              <p>{commonI18n.t(locale, 'lowDataBadge')}</p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            className="chibi-burger-btn"
+            aria-label="Menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+            {unreadChatRooms.length > 0 && <span className="chibi-burger-dot" />}
+          </button>
         </div>
 
-        <nav className="chibi-nav-actions">
+        <nav className={`chibi-nav-actions ${mobileMenuOpen ? 'is-open' : ''}`}>
           <button
             type="button"
             className={`chibi-btn ${activeTab === 'my' ? '' : 'chibi-btn-secondary'}`}
             onClick={() => {
               setActiveTab('my');
+              setMobileMenuOpen(false);
               loadWishlists();
             }}
           >
@@ -698,6 +713,7 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
             className={`chibi-btn ${activeTab === 'all' ? '' : 'chibi-btn-secondary'}`}
             onClick={() => {
               setActiveTab('all');
+              setMobileMenuOpen(false);
               loadWishlists();
             }}
           >
@@ -710,7 +726,10 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
               unreadChatRooms.length > 0 ? 'chibi-btn-lavender' : 'chibi-btn-secondary'
             }`}
             style={{ position: 'relative' }}
-            onClick={() => setShowNotificationsModal(true)}
+            onClick={() => {
+              setShowNotificationsModal(true);
+              setMobileMenuOpen(false);
+            }}
           >
             🔔 {coordinationChatI18n.t(locale, 'notificationsButton')} ({coGiverChatRooms.length})
             {unreadChatRooms.length > 0 && (
@@ -734,7 +753,10 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
             <button
               type="button"
               className={`chibi-btn ${activeTab === 'admin' ? '' : 'chibi-btn-secondary'}`}
-              onClick={() => setActiveTab('admin')}
+              onClick={() => {
+                setActiveTab('admin');
+                setMobileMenuOpen(false);
+              }}
             >
               🔑 {commonI18n.t(locale, 'adminPanel')}
             </button>
@@ -743,13 +765,23 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
           <button
             type="button"
             className="chibi-btn chibi-btn-secondary"
-            onClick={() => setLocale(locale === 'da' ? 'en' : 'da')}
+            onClick={() => {
+              setLocale(locale === 'da' ? 'en' : 'da');
+              setMobileMenuOpen(false);
+            }}
             title={commonI18n.t(locale, 'languageLabel')}
           >
             🌐 {locale.toUpperCase()}
           </button>
 
-          <button type="button" className="chibi-btn chibi-btn-secondary" onClick={handleLogout}>
+          <button
+            type="button"
+            className="chibi-btn chibi-btn-secondary"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              handleLogout();
+            }}
+          >
             {commonI18n.t(locale, 'logout')}
           </button>
         </nav>

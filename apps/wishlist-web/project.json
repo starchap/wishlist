@@ -20,7 +20,7 @@
     "start": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx next start apps/wishlist-web -p 3000"
+        "command": "npx next start apps/wishlist-web"
       }
     }
   }

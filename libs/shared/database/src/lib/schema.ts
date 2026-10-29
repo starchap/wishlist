@@ -89,6 +89,8 @@ export const wishesTable = pgTable(
 /**
  * Gifting Domain: Secret Gift Reservations ("Dette vil jeg gerne købe")
  */
+export type PledgeType = 'full' | 'partial_amount' | 'partial_percent';
+
 export const giftPledgesTable = pgTable(
   'gift_pledges',
   {
@@ -100,6 +102,9 @@ export const giftPledgesTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: 'cascade' }),
     quantityPledged: integer('quantity_pledged').notNull().default(1),
+    pledgeType: text('pledge_type').$type<PledgeType>().notNull().default('full'),
+    amountDkk: integer('amount_dkk'),
+    percentShare: integer('percent_share'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
   },
   (table) => [

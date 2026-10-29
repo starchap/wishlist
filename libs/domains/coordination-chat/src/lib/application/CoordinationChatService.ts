@@ -68,16 +68,6 @@ export class CoordinationChatService {
       return Result.fail('errorUnauthorizedChat');
     }
 
-    const pledges = await db
-      .select()
-      .from(giftPledgesTable)
-      .where(eq(giftPledgesTable.wishId, wishId));
-
-    const isActorPledged = pledges.some((p) => p.giverUserId === actorUserId);
-    if (!isActorPledged || pledges.length < 2) {
-      return Result.fail('errorUnauthorizedChat');
-    }
-
     return Result.ok();
   }
 

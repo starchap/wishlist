@@ -7,7 +7,12 @@ import { commonI18n, type Locale } from '@wishlist/i18n';
 import { iamI18n, CHIBI_AVATARS, type SessionPayload, type InviteDto } from '@wishlist/domain-iam/client';
 import { wishlistI18n, type WishlistSummaryDto } from '@wishlist/domain-wishlist/client';
 import { metadataImporterI18n, type ScrapedWishMetadata } from '@wishlist/domain-metadata-importer/client';
-import { giftingI18n, type WishGiftingStateDto } from '@wishlist/domain-gifting/client';
+import {
+  giftingI18n,
+  type PledgeType,
+  type WishGiftStatus,
+  type WishGiftingStateDto
+} from '@wishlist/domain-gifting/client';
 import {
   coordinationChatI18n,
   ALLOWED_QUICK_EMOJIS,
@@ -73,6 +78,19 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
   const [chatError, setChatError] = useState<string | null>(null);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [seenChatIds, setSeenChatIds] = useState<Record<string, string>>({});
+
+  // Gift Pledge / Split-Gift Modal & Filter state
+  const [giftStatusFilter, setGiftStatusFilter] = useState<'all' | WishGiftStatus>('all');
+  const [activePledgeWish, setActivePledgeWish] = useState<{
+    id: string;
+    title: string;
+    priceDkk: number | null;
+  } | null>(null);
+  const [pledgeType, setPledgeType] = useState<PledgeType>('full');
+  const [pledgeAmountDkk, setPledgeAmountDkk] = useState<string>('');
+  const [pledgePercentShare, setPledgePercentShare] = useState<number>(50);
+  const [pledgeError, setPledgeError] = useState<string | null>(null);
+  const [savingPledge, setSavingPledge] = useState(false);
 
   const markChatSeen = useCallback(
     (wishId: string, latestMessageId?: string | null) => {
@@ -357,14 +375,78 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
     }
   };
 
-  const handleToggleGiftPledge = async (wishId: string) => {
-    const res = await fetch('/api/gifting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wishId, quantity: 1 })
-    });
-    if (res.ok) {
+  const openPledgeModal = (wish: { id: string; title: string; priceDkk: number | null }) => {
+    const gState = giftingStates[wish.id];
+    const existing = gState?.viewerPledge;
+    setPledgeError(null);
+    setActivePledgeWish(wish);
+
+    if (existing) {
+      setPledgeType(existing.pledgeType);
+      setPledgeAmountDkk(existing.amountDkk ? String(existing.amountDkk) : '');
+      setPledgePercentShare(existing.percentShare || 50);
+    } else if (gState && gState.status === 'co_giving_open') {
+      // Default to taking the remaining share when joining an open co-gift!
+      if (wish.priceDkk && gState.remainingDkk && gState.remainingDkk > 0) {
+        setPledgeType('partial_amount');
+        setPledgeAmountDkk(String(gState.remainingDkk));
+        setPledgePercentShare(gState.remainingPercent || 50);
+      } else {
+        setPledgeType('partial_percent');
+        setPledgePercentShare(gState.remainingPercent > 0 ? gState.remainingPercent : 50);
+        setPledgeAmountDkk('');
+      }
+    } else {
+      setPledgeType('full');
+      setPledgeAmountDkk(wish.priceDkk ? String(Math.round(wish.priceDkk / 2)) : '200');
+      setPledgePercentShare(50);
+    }
+  };
+
+  const handleSaveGiftPledge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePledgeWish) return;
+    setPledgeError(null);
+    setSavingPledge(true);
+    try {
+      const res = await fetch('/api/gifting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wishId: activePledgeWish.id,
+          action: 'upsert',
+          pledgeType,
+          amountDkk: pledgeType === 'partial_amount' ? Number(pledgeAmountDkk) : null,
+          percentShare: pledgeType === 'partial_percent' ? Number(pledgePercentShare) : null,
+          quantity: 1
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPledgeError(giftingI18n.t(locale, data.error || 'errorInvalidAmount'));
+        return;
+      }
+      setActivePledgeWish(null);
       await loadWishlists();
+    } finally {
+      setSavingPledge(false);
+    }
+  };
+
+  const handleRemoveGiftPledge = async (wishId: string) => {
+    setSavingPledge(true);
+    try {
+      const res = await fetch('/api/gifting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wishId, action: 'remove' })
+      });
+      if (res.ok) {
+        setActivePledgeWish(null);
+        await loadWishlists();
+      }
+    } finally {
+      setSavingPledge(false);
     }
   };
 
@@ -644,10 +726,10 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
     ? otherWishlists.filter((w) => w.userId === selectedUserId)
     : otherWishlists;
 
-  // Compute all co-giver chats accessible to this user (Surprise Guard already enforced on server)
+  // Compute all co-giver chats relevant to this user (Surprise Guard already enforced on server)
   const coGiverChatRooms = otherWishlists.flatMap((wl) =>
     wl.wishes
-      .filter((w) => giftingStates[w.id]?.canAccessCoGiverChat)
+      .filter((w) => giftingStates[w.id]?.isViewerInvolvedInChat)
       .map((w) => {
         const gState = giftingStates[w.id];
         const latest = gState?.latestChatMessage || null;
@@ -659,7 +741,7 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
           wish: w,
           ownerDisplayName: wl.ownerDisplayName,
           ownerAvatarEmoji: wl.ownerAvatarEmoji,
-          giverCount: gState.givers.length,
+          giverCount: Math.max(1, gState.givers.length),
           givers: gState.givers,
           chatMessageCount: gState.chatMessageCount || 0,
           latestChatMessage: latest,
@@ -966,7 +1048,8 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
       {/* TAB 2: EVERYONE'S WISHLISTS (Gifting & Secret Co-giver Chat) */}
       {activeTab === 'all' && (
         <section>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+          {/* User Filter Bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
             <button
               type="button"
               className={`chibi-btn ${selectedUserId === null ? '' : 'chibi-btn-secondary'}`}
@@ -988,6 +1071,34 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
             ))}
           </div>
 
+          {/* Gift Status Filter Bar (Available / Open for Co-Givers / Reserved) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+            {(
+              [
+                { id: 'all', label: giftingI18n.t(locale, 'filterAllStatus') },
+                { id: 'available', label: giftingI18n.t(locale, 'filterAvailable') },
+                { id: 'co_giving_open', label: giftingI18n.t(locale, 'filterCoGiving') },
+                { id: 'fully_reserved', label: giftingI18n.t(locale, 'filterReserved') }
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`chibi-pill ${giftStatusFilter === f.id ? 'chibi-pill-mint' : ''}`}
+                style={{
+                  cursor: 'pointer',
+                  padding: '6px 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: giftStatusFilter === f.id ? 800 : 600,
+                  borderWidth: giftStatusFilter === f.id ? 2 : 1
+                }}
+                onClick={() => setGiftStatusFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           {visibleOtherWishlists.length === 0 ? (
             <Card.Root className="chibi-card" style={{ padding: 32, textAlign: 'center' }}>
               <ChibiMascotSvg size={64} />
@@ -995,152 +1106,299 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
             </Card.Root>
           ) : (
             <div style={{ display: 'grid', gap: 32 }}>
-              {visibleOtherWishlists.map((otherWl) => (
-                <div key={otherWl.id}>
-                  <h2 style={{ marginTop: 0, marginBottom: 14, color: 'var(--color-primary-800)' }}>
-                    {otherWl.ownerAvatarEmoji}{' '}
-                    {wishlistI18n.t(locale, 'ownerWishlistTitle', {
-                      name: otherWl.ownerDisplayName
-                    })}
-                  </h2>
+              {visibleOtherWishlists.map((otherWl) => {
+                const filteredWishes = otherWl.wishes.filter((w) => {
+                  if (giftStatusFilter === 'all') return true;
+                  const st = giftingStates[w.id]?.status || 'available';
+                  return st === giftStatusFilter;
+                });
 
-                  {otherWl.wishes.length === 0 ? (
-                    <Card.Root className="chibi-card" style={{ padding: 24, textAlign: 'center' }}>
-                      <p style={{ margin: 0, color: 'var(--color-neutral-600)' }}>
-                        {wishlistI18n.t(locale, 'emptyWishlistTitle')}
-                      </p>
-                    </Card.Root>
-                  ) : (
-                    <div className="chibi-grid">
-                      {otherWl.wishes.map((wish) => {
-                        const gState = giftingStates[wish.id];
-                        const givers = gState?.givers || [];
-                        const isViewerPledged = gState?.isViewerPledged || false;
-                        const canChat = gState?.canAccessCoGiverChat || false;
+                return (
+                  <div key={otherWl.id}>
+                    <h2 style={{ marginTop: 0, marginBottom: 14, color: 'var(--color-primary-800)' }}>
+                      {otherWl.ownerAvatarEmoji}{' '}
+                      {wishlistI18n.t(locale, 'ownerWishlistTitle', {
+                        name: otherWl.ownerDisplayName
+                      })}
+                    </h2>
 
-                        return (
-                          <Card.Root key={wish.id} className="chibi-card">
-                            <div className="chibi-wish-img-wrap">
-                              {wish.imageApiUrl ? (
-                                <img
-                                  src={wish.imageApiUrl}
-                                  alt={wish.title}
-                                  loading="lazy"
-                                  decoding="async"
-                                />
-                              ) : (
-                                <ChibiGiftPlaceholderSvg size={72} />
-                              )}
-                            </div>
-                            <Card.Content style={{ padding: '12px 4px 4px 4px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                              <h3 className="chibi-wish-title">
-                                {wish.productUrl ? (
-                                  <a
-                                    href={wish.productUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="chibi-wish-title-link"
-                                  >
-                                    {wish.title} <span aria-hidden="true">↗</span>
-                                  </a>
-                                ) : (
-                                  wish.title
-                                )}
-                              </h3>
+                    {filteredWishes.length === 0 ? (
+                      <Card.Root className="chibi-card" style={{ padding: 24, textAlign: 'center' }}>
+                        <p style={{ margin: 0, color: 'var(--color-neutral-600)' }}>
+                          {wishlistI18n.t(locale, 'emptyWishlistTitle')}
+                        </p>
+                      </Card.Root>
+                    ) : (
+                      <div className="chibi-grid">
+                        {filteredWishes.map((wish) => {
+                          const gState = giftingStates[wish.id];
+                          const givers = gState?.givers || [];
+                          const status: WishGiftStatus = gState?.status || 'available';
+                          const isViewerPledged = gState?.isViewerPledged || false;
+                          const canChat = gState?.canAccessCoGiverChat || false;
+                          const totalPercent = gState?.totalPledgedPercent || 0;
+                          const totalDkk = gState?.totalPledgedDkk || 0;
+                          const remainingDkk = gState?.remainingDkk ?? null;
+                          const remainingPercent = gState?.remainingPercent ?? 100;
 
-                              {wish.description && (
-                                <p className="chibi-wish-desc" title={wish.description}>
-                                  {wish.description}
-                                </p>
-                              )}
-
-                              <div style={{ marginTop: 4, marginBottom: 8 }}>
-                                <span className="chibi-pill">
-                                  {wishlistI18n.t(locale, 'quantityBadge', { qty: wish.quantity })}
+                          return (
+                            <Card.Root key={wish.id} className="chibi-card">
+                              <div className="chibi-wish-img-wrap">
+                                {/* Top-Left Status Pill on Image */}
+                                <span
+                                  style={{
+                                    position: 'absolute',
+                                    top: 10,
+                                    left: 10,
+                                    zIndex: 4,
+                                    padding: '4px 10px',
+                                    borderRadius: 999,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                    background:
+                                      status === 'available'
+                                        ? 'rgba(236, 253, 245, 0.95)'
+                                        : status === 'co_giving_open'
+                                          ? 'rgba(254, 243, 199, 0.95)'
+                                          : 'rgba(224, 242, 254, 0.95)',
+                                    color:
+                                      status === 'available'
+                                        ? '#065f46'
+                                        : status === 'co_giving_open'
+                                          ? '#92400e'
+                                          : '#075985',
+                                    border:
+                                      status === 'available'
+                                        ? '1.5px solid #6ee7b7'
+                                        : status === 'co_giving_open'
+                                          ? '1.5px solid #fcd34d'
+                                          : '1.5px solid #7dd3fc',
+                                    boxShadow: '0 2px 8px rgba(15, 28, 46, 0.08)'
+                                  }}
+                                >
+                                  {status === 'available'
+                                    ? giftingI18n.t(locale, 'filterAvailable')
+                                    : status === 'co_giving_open'
+                                      ? giftingI18n.t(locale, 'statusCoGivingOpen', {
+                                          percent: totalPercent
+                                        })
+                                      : giftingI18n.t(locale, 'statusFullyReserved', {
+                                          percent: totalPercent
+                                        })}
                                 </span>
+
+                                {wish.imageApiUrl ? (
+                                  <img
+                                    src={wish.imageApiUrl}
+                                    alt={wish.title}
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                ) : (
+                                  <ChibiGiftPlaceholderSvg size={72} />
+                                )}
                               </div>
-
-                              {wish.priceDkk !== null && (
-                                <div className="chibi-price-tag" style={{ marginBottom: 10 }}>
-                                  {wish.priceDkk.toLocaleString(locale === 'da' ? 'da-DK' : 'en-US')}{' '}
-                                  {commonI18n.t(locale, 'currency')}
-                                </div>
-                              )}
-
-                              {/* Secret Gifting Reservation Status (Hidden from Owner!) */}
-                              <div
+                              <Card.Content
                                 style={{
-                                  marginTop: wish.priceDkk !== null ? 0 : 'auto',
-                                  padding: 12,
-                                  borderRadius: 16,
-                                  background: 'var(--color-neutral-100)',
-                                  display: 'grid',
-                                  gap: 8
+                                  padding: '12px 4px 4px 4px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  flex: 1
                                 }}
                               >
-                                {givers.length === 0 ? (
-                                  <span style={{ fontSize: '0.82rem', color: 'var(--color-neutral-700)' }}>
-                                    ✨ {giftingI18n.t(locale, 'availableToBuy')}
+                                <h3 className="chibi-wish-title">
+                                  {wish.productUrl ? (
+                                    <a
+                                      href={wish.productUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="chibi-wish-title-link"
+                                    >
+                                      {wish.title} <span aria-hidden="true">↗</span>
+                                    </a>
+                                  ) : (
+                                    wish.title
+                                  )}
+                                </h3>
+
+                                {wish.description && (
+                                  <p className="chibi-wish-desc" title={wish.description}>
+                                    {wish.description}
+                                  </p>
+                                )}
+
+                                <div style={{ marginTop: 4, marginBottom: 8 }}>
+                                  <span className="chibi-pill">
+                                    {wishlistI18n.t(locale, 'quantityBadge', { qty: wish.quantity })}
                                   </span>
-                                ) : (
-                                  <div style={{ fontSize: '0.84rem', fontWeight: 700 }}>
-                                    {giftingI18n.t(locale, 'othersBuyingBadge', {
-                                      names: givers.map((g) => `${g.avatarEmoji} ${g.displayName}`).join(', ')
-                                    })}
+                                </div>
+
+                                {wish.priceDkk !== null && (
+                                  <div className="chibi-price-tag" style={{ marginBottom: 10 }}>
+                                    {wish.priceDkk.toLocaleString(locale === 'da' ? 'da-DK' : 'en-US')}{' '}
+                                    {commonI18n.t(locale, 'currency')}
                                   </div>
                                 )}
 
-                                <button
-                                  type="button"
-                                  className={`chibi-btn ${isViewerPledged ? 'chibi-btn-mint' : ''}`}
-                                  onClick={() => handleToggleGiftPledge(wish.id)}
+                                {/* Secret Gifting & Co-Giving Status Box (Hidden from Owner!) */}
+                                <div
+                                  style={{
+                                    marginTop: wish.priceDkk !== null ? 0 : 'auto',
+                                    padding: 12,
+                                    borderRadius: 16,
+                                    background:
+                                      status === 'co_giving_open'
+                                        ? '#fffbeb'
+                                        : 'var(--color-neutral-100)',
+                                    border:
+                                      status === 'co_giving_open'
+                                        ? '1.5px solid #fde68a'
+                                        : '1px solid var(--color-primary-100)',
+                                    display: 'grid',
+                                    gap: 8
+                                  }}
                                 >
-                                  {isViewerPledged
-                                    ? `✅ ${giftingI18n.t(locale, 'youAreBuyingBadge')} (${giftingI18n.t(
-                                        locale,
-                                        'unpledgeButton'
-                                      )})`
-                                    : giftingI18n.t(locale, 'pledgeButton')}
-                                </button>
-
-                                {canChat && (
-                                  <button
-                                    type="button"
-                                    className="chibi-btn chibi-btn-lavender"
-                                    onClick={() => openCoGiverChat(wish, givers.length)}
-                                  >
-                                    {giftingI18n.t(locale, 'openGiftChatButton', {
-                                      count: givers.length
-                                    })}
-                                    {gState?.chatMessageCount ? ` (${gState.chatMessageCount})` : ''}
-                                    {gState?.latestChatMessage &&
-                                      gState.latestChatMessage.senderUserId !== session.userId &&
-                                      seenChatIds[wish.id] !== gState.latestChatMessage.id && (
-                                        <span
+                                  {givers.length === 0 ? (
+                                    <span style={{ fontSize: '0.82rem', color: 'var(--color-neutral-700)', fontWeight: 600 }}>
+                                      {giftingI18n.t(locale, 'availableToBuy')}
+                                    </span>
+                                  ) : (
+                                    <div style={{ display: 'grid', gap: 6 }}>
+                                      {/* Progress Bar */}
+                                      <div
+                                        style={{
+                                          width: '100%',
+                                          height: 8,
+                                          borderRadius: 999,
+                                          background: 'rgba(14, 145, 233, 0.14)',
+                                          overflow: 'hidden'
+                                        }}
+                                      >
+                                        <div
                                           style={{
-                                            marginLeft: 6,
-                                            padding: '2px 7px',
+                                            width: `${Math.min(100, Math.max(8, totalPercent))}%`,
+                                            height: '100%',
                                             borderRadius: 999,
-                                            fontSize: '0.7rem',
-                                            fontWeight: 800,
-                                            background: '#e11d48',
-                                            color: '#ffffff'
+                                            background:
+                                              status === 'fully_reserved'
+                                                ? 'var(--color-success-500, #10b981)'
+                                                : 'var(--color-primary-500, #0e91e9)',
+                                            transition: 'width 0.25s ease'
                                           }}
-                                        >
-                                          🔔 {coordinationChatI18n.t(locale, 'newMessageBadge')}
-                                        </span>
+                                        />
+                                      </div>
+
+                                      {/* Summary Line */}
+                                      {status === 'co_giving_open' && (
+                                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e' }}>
+                                          {wish.priceDkk && remainingDkk !== null
+                                            ? giftingI18n.t(locale, 'coveredSummaryDkk', {
+                                                covered: totalDkk.toLocaleString(
+                                                  locale === 'da' ? 'da-DK' : 'en-US'
+                                                ),
+                                                total: wish.priceDkk.toLocaleString(
+                                                  locale === 'da' ? 'da-DK' : 'en-US'
+                                                ),
+                                                percent: totalPercent,
+                                                remaining: remainingDkk.toLocaleString(
+                                                  locale === 'da' ? 'da-DK' : 'en-US'
+                                                )
+                                              })
+                                            : giftingI18n.t(locale, 'coveredSummaryPercent', {
+                                                percent: totalPercent,
+                                                remainingPercent
+                                              })}
+                                        </div>
                                       )}
-                                  </button>
-                                )}
-                              </div>
-                            </Card.Content>
-                          </Card.Root>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
+
+                                      {/* Givers List with Exact Share */}
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {givers.map((g) => {
+                                          let shareLabel = giftingI18n.t(locale, 'fullGiftBadge');
+                                          if (g.pledgeType === 'partial_amount' && g.amountDkk) {
+                                            shareLabel = `${g.amountDkk.toLocaleString(
+                                              locale === 'da' ? 'da-DK' : 'en-US'
+                                            )} ${commonI18n.t(locale, 'currency')}${
+                                              g.effectivePercent ? ` (${g.effectivePercent}%)` : ''
+                                            }`;
+                                          } else if (g.pledgeType === 'partial_percent' && g.percentShare) {
+                                            shareLabel = `${g.percentShare}%${
+                                              g.effectiveAmountDkk
+                                                ? ` (${g.effectiveAmountDkk.toLocaleString(
+                                                    locale === 'da' ? 'da-DK' : 'en-US'
+                                                  )} ${commonI18n.t(locale, 'currency')})`
+                                                : ''
+                                            }`;
+                                          }
+                                          return (
+                                            <span
+                                              key={g.userId}
+                                              className="chibi-pill"
+                                              style={{
+                                                fontSize: '0.76rem',
+                                                padding: '3px 9px',
+                                                background: '#ffffff'
+                                              }}
+                                            >
+                                              {g.avatarEmoji} <strong>{g.displayName}:</strong> {shareLabel}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div style={{ display: 'grid', gap: 6, marginTop: 2 }}>
+                                    <button
+                                      type="button"
+                                      className={`chibi-btn ${isViewerPledged ? 'chibi-btn-mint' : ''}`}
+                                      onClick={() => openPledgeModal(wish)}
+                                    >
+                                      {isViewerPledged
+                                        ? `✅ ${giftingI18n.t(locale, 'editPledgeButton')}`
+                                        : giftingI18n.t(locale, 'pledgeButton')}
+                                    </button>
+
+                                    {canChat && (givers.length > 0 || (gState?.chatMessageCount || 0) > 0) && (
+                                      <button
+                                        type="button"
+                                        className="chibi-btn chibi-btn-lavender"
+                                        onClick={() => openCoGiverChat(wish, Math.max(1, givers.length))}
+                                      >
+                                        {givers.length >= 2 || isViewerPledged
+                                          ? giftingI18n.t(locale, 'openGiftChatButton')
+                                          : giftingI18n.t(locale, 'startDialogueButton')}
+                                        {gState?.chatMessageCount ? ` (${gState.chatMessageCount})` : ''}
+                                        {gState?.latestChatMessage &&
+                                          gState.latestChatMessage.senderUserId !== session.userId &&
+                                          seenChatIds[wish.id] !== gState.latestChatMessage.id && (
+                                            <span
+                                              style={{
+                                                marginLeft: 6,
+                                                padding: '2px 7px',
+                                                borderRadius: 999,
+                                                fontSize: '0.7rem',
+                                                fontWeight: 800,
+                                                background: '#e11d48',
+                                                color: '#ffffff'
+                                              }}
+                                            >
+                                              🔔 {coordinationChatI18n.t(locale, 'newMessageBadge')}
+                                            </span>
+                                          )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </Card.Content>
+                            </Card.Root>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -1673,6 +1931,303 @@ export function WishlistAppClient({ initialInviteToken }: WishlistAppClientProps
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: GIFT PLEDGE / CO-GIVING SPLIT MODAL */}
+      {activePledgeWish && (
+        <div className="chibi-modal-backdrop" onClick={() => setActivePledgeWish(null)}>
+          <div className="chibi-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, color: 'var(--color-primary-800)' }}>
+              {giftingI18n.t(locale, 'pledgeModalTitle', { title: activePledgeWish.title })}
+            </h3>
+            <p style={{ marginTop: 4, fontSize: '0.88rem', color: 'var(--color-neutral-700)' }}>
+              {giftingI18n.t(locale, 'pledgeModalSubtitle')}
+            </p>
+
+            {activePledgeWish.priceDkk !== null && (
+              <div style={{ marginBottom: 14 }}>
+                <span className="chibi-pill">
+                  💰 {activePledgeWish.priceDkk.toLocaleString(locale === 'da' ? 'da-DK' : 'en-US')}{' '}
+                  {commonI18n.t(locale, 'currency')}
+                </span>
+              </div>
+            )}
+
+            {pledgeError && (
+              <div style={{ marginBottom: 12 }}>
+                <Alert.Root color="error">
+                  <Alert.Description>{pledgeError}</Alert.Description>
+                </Alert.Root>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveGiftPledge} style={{ display: 'grid', gap: 12 }}>
+              {/* Option 1: Full Gift */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: 12,
+                  borderRadius: 14,
+                  border:
+                    pledgeType === 'full'
+                      ? '2px solid var(--color-primary-500)'
+                      : '1.5px solid var(--color-primary-200)',
+                  background: pledgeType === 'full' ? 'var(--color-primary-50)' : '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="pledgeType"
+                  checked={pledgeType === 'full'}
+                  onChange={() => setPledgeType('full')}
+                  style={{ marginTop: 4 }}
+                />
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.94rem' }}>
+                    {giftingI18n.t(locale, 'modeFullTitle')}
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-neutral-600)' }}>
+                    {giftingI18n.t(locale, 'modeFullDesc')}
+                  </span>
+                </div>
+              </label>
+
+              {/* Option 2: Partial Fixed Amount (DKK) */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: 12,
+                  borderRadius: 14,
+                  border:
+                    pledgeType === 'partial_amount'
+                      ? '2px solid var(--color-primary-500)'
+                      : '1.5px solid var(--color-primary-200)',
+                  background: pledgeType === 'partial_amount' ? 'var(--color-primary-50)' : '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="pledgeType"
+                  checked={pledgeType === 'partial_amount'}
+                  onChange={() => setPledgeType('partial_amount')}
+                  style={{ marginTop: 4 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <strong style={{ display: 'block', fontSize: '0.94rem' }}>
+                    {giftingI18n.t(locale, 'modeAmountTitle')}
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-neutral-600)' }}>
+                    {giftingI18n.t(locale, 'modeAmountDesc')}
+                  </span>
+
+                  {pledgeType === 'partial_amount' && (
+                    <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                      <input
+                        type="number"
+                        min={1}
+                        className="chibi-input"
+                        value={pledgeAmountDkk}
+                        onChange={(e) => setPledgeAmountDkk(e.target.value)}
+                        placeholder={giftingI18n.t(locale, 'amountInputLabel')}
+                        required
+                      />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {[100, 200, 300, 500].map((amt) => (
+                          <button
+                            key={amt}
+                            type="button"
+                            className="chibi-pill"
+                            style={{ cursor: 'pointer', background: '#ffffff' }}
+                            onClick={() => setPledgeAmountDkk(String(amt))}
+                          >
+                            {amt} {commonI18n.t(locale, 'currency')}
+                          </button>
+                        ))}
+                        {(() => {
+                          const gs = giftingStates[activePledgeWish.id];
+                          if (gs && gs.remainingDkk && gs.remainingDkk > 0) {
+                            return (
+                              <button
+                                type="button"
+                                className="chibi-pill chibi-pill-mint"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setPledgeAmountDkk(String(gs.remainingDkk))}
+                              >
+                                ✨{' '}
+                                {giftingI18n.t(locale, 'takeRemainingButton', {
+                                  amount: gs.remainingDkk,
+                                  percent: gs.remainingPercent
+                                })}
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      {activePledgeWish.priceDkk && Number(pledgeAmountDkk) > 0 && (
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-800)' }}>
+                          {giftingI18n.t(locale, 'correspondsToPercent', {
+                            percent: Math.min(
+                              100,
+                              Math.round((Number(pledgeAmountDkk) / activePledgeWish.priceDkk) * 100)
+                            ),
+                            total: activePledgeWish.priceDkk.toLocaleString(
+                              locale === 'da' ? 'da-DK' : 'en-US'
+                            )
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </label>
+
+              {/* Option 3: Partial Percentage (%) */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: 12,
+                  borderRadius: 14,
+                  border:
+                    pledgeType === 'partial_percent'
+                      ? '2px solid var(--color-primary-500)'
+                      : '1.5px solid var(--color-primary-200)',
+                  background: pledgeType === 'partial_percent' ? 'var(--color-primary-50)' : '#ffffff',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="pledgeType"
+                  checked={pledgeType === 'partial_percent'}
+                  onChange={() => setPledgeType('partial_percent')}
+                  style={{ marginTop: 4 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <strong style={{ display: 'block', fontSize: '0.94rem' }}>
+                    {giftingI18n.t(locale, 'modePercentTitle')}
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-neutral-600)' }}>
+                    {giftingI18n.t(locale, 'modePercentDesc')}
+                  </span>
+
+                  {pledgeType === 'partial_percent' && (
+                    <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <input
+                          type="range"
+                          min={5}
+                          max={100}
+                          step={5}
+                          value={pledgePercentShare}
+                          onChange={(e) => setPledgePercentShare(Number(e.target.value))}
+                          style={{ flex: 1 }}
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          className="chibi-input"
+                          style={{ width: 84, textAlign: 'center', fontWeight: 800 }}
+                          value={pledgePercentShare}
+                          onChange={(e) => setPledgePercentShare(Number(e.target.value))}
+                          required
+                        />
+                        <strong>%</strong>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {[20, 25, 33, 50, 75].map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            className="chibi-pill"
+                            style={{ cursor: 'pointer', background: '#ffffff' }}
+                            onClick={() => setPledgePercentShare(pct)}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                        {(() => {
+                          const gs = giftingStates[activePledgeWish.id];
+                          if (gs && gs.remainingPercent > 0 && gs.remainingPercent < 100) {
+                            return (
+                              <button
+                                type="button"
+                                className="chibi-pill chibi-pill-mint"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setPledgePercentShare(gs.remainingPercent)}
+                              >
+                                ✨ {gs.remainingPercent}%
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      {activePledgeWish.priceDkk && pledgePercentShare > 0 && (
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-800)' }}>
+                          {giftingI18n.t(locale, 'correspondsToDkk', {
+                            amount: Math.round(
+                              (activePledgeWish.priceDkk * pledgePercentShare) / 100
+                            ).toLocaleString(locale === 'da' ? 'da-DK' : 'en-US'),
+                            total: activePledgeWish.priceDkk.toLocaleString(
+                              locale === 'da' ? 'da-DK' : 'en-US'
+                            )
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </label>
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  marginTop: 6
+                }}
+              >
+                {giftingStates[activePledgeWish.id]?.isViewerPledged ? (
+                  <button
+                    type="button"
+                    className="chibi-btn chibi-btn-secondary"
+                    style={{ color: '#e11d48', borderColor: '#fecdd3' }}
+                    onClick={() => handleRemoveGiftPledge(activePledgeWish.id)}
+                    disabled={savingPledge}
+                  >
+                    🗑️ {giftingI18n.t(locale, 'unpledgeButton')}
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="chibi-btn chibi-btn-secondary"
+                    onClick={() => setActivePledgeWish(null)}
+                  >
+                    {commonI18n.t(locale, 'cancel')}
+                  </button>
+                  <button type="submit" className="chibi-btn" disabled={savingPledge}>
+                    {giftingI18n.t(locale, 'savePledgeButton')}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -7,8 +7,10 @@ export const giftingI18n = defineDomainI18n('gifting', {
   en: enGifting
 });
 
+export type { PledgeType } from './lib/domain/models';
 export type {
   GiftGiverDto,
   LatestChatMessagePreviewDto,
+  WishGiftStatus,
   WishGiftingStateDto
 } from './lib/application/GiftingApplicationService';
